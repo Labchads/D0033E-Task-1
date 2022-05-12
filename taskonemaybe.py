@@ -4,6 +4,14 @@ import numpy
 import matplotlib.pyplot as plt
 import pandas as pd
 from csv import reader
+from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
+from sklearn.model_selection import train_test_split # Import train_test_split function
+from sklearn import metrics #Import scikit-learn metrics module for accuracy calculation
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import confusion_matrix
 
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -32,6 +40,8 @@ while i<21:
     newcolumns.append(name3)
     
     i+=1
+
+testfeatures = newcolumns[:]
 i=1
 while i<21:
     name1 = "joint"+str(i)+"stdevx"
@@ -62,6 +72,8 @@ while i<21:
     newcolumns.append(name3)
     
     i+=1
+
+featurecolumns = newcolumns[:]
 
 newcolumns.append("posename")
 newcolumns.append("poseid")
@@ -94,60 +106,9 @@ newdata = data[data.columns[:240]]
 #newdata.drop("posename", inplace=True, axis=1)
 #   newdata.drop("poseid", inplace=True, axis=1)
 
-""" j=1
-while j<21:
-    column = "joint"+str(j)+"coords"
-    newdata[column] = data[data.columns[j-1:j+2]].apply(
-    lambda x: ','.join(x.dropna().astype(str)),
-    axis=1
-    )
-    
-    j+=1
-
-j=1
-while j<21:
-    column = "joint"+str(j)+"coordstdev"
-    newdata[column] = data[data.columns[20:j+22]].apply(
-    lambda x: ','.join(x.dropna().astype(str)),
-    axis=1
-    )
-    
-    j+=1
-
-j=1
-while j<61:
-    column = "joint"+str(j)+"angles"
-    newdata[column] = data[data.columns[j-1:j+2]].apply(
-    lambda x: ','.join(x.dropna().astype(str)),
-    axis=1
-    )
-    
-    j+=1
-
-j=1
-while j<81:
-    column = "joint"+str(j)+"anglesstdev"
-    newdata[column] = data[data.columns[j-1:j+2]].apply(
-    lambda x: ','.join(x.dropna().astype(str)),
-    axis=1
-    )
-    
-    j+=1 """
-
 
 #print(newdata)
 #print(data)
-
-""" reformedData = {}
-
-dataKeys = data.keys()
-i=0
-jointNr = 1
-while i<60:
-    index = "joint"+str(jointNr)
-    reformedData[jointNr]=[[data[dataKeys[i]], data[dataKeys[i+1]], data[dataKeys[i+2]]]]
-    i = i+3 """
-
 
 
 NUM_OF_JOINTS = 20
@@ -228,4 +189,78 @@ def showPose(posenum):
 #plt.show()
 #print(pose.idName)
 
-showPose(5)
+#showPose(5)
+
+# NOW LET'S APPLY SOME ALGORITHMS
+X_train = data[featurecolumns] # Features
+Y_train = data.posename # Target variable
+
+X_test = data2[featurecolumns] # Features
+Y_test = data2.posename # Target variable
+
+
+def treeClass():
+    # Create Decision Tree classifer object
+    clf = DecisionTreeClassifier(criterion="entropy", max_depth=120)
+
+    # Train Decision Tree Classifer
+    clf = clf.fit(X_train,Y_train)
+
+    #Predict the response for test dataset
+    y_pred = clf.predict(X_test)
+
+    # Model Accuracy, how often is the classifier correct?
+    print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
+
+def kNNClass():
+    #Create KNN Classifier
+    knn = KNeighborsClassifier(n_neighbors=2)
+
+    #Train the model using the training sets
+    knn.fit(X_train, Y_train)
+
+    #Predict the response for test dataset
+    y_pred = knn.predict(X_test)
+    print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
+
+def svmClass():
+    #Create a svm Classifier
+    clf = svm.SVC(kernel='linear') # Linear Kernel
+
+    #Train the model using the training sets
+    clf.fit(X_train, Y_train)
+
+    #Predict the response for test dataset
+    y_pred = clf.predict(X_test)
+    print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
+
+def forestClass():
+    #Create a Gaussian Classifier
+    clf=RandomForestClassifier(n_estimators=100)
+
+    #Train the model using the training sets y_pred=clf.predict(X_test)
+    clf.fit(X_train,Y_train)
+
+    y_pred=clf.predict(X_test)
+    print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
+
+def mlpClass():
+    classifier = MLPClassifier(hidden_layer_sizes=(150,100,50), max_iter=300,activation = 'relu',solver='adam',random_state=1)
+    classifier.fit(X_train, Y_train)
+    y_pred = classifier.predict(X_test)
+    #Importing Confusion Matrix
+    
+    #Comparing the predictions against the actual observations in y_val
+    #cm = confusion_matrix(y_pred, Y_test)
+
+    #Printing the accuracy
+    print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
+    #print("Accuracy of MLPClassifier : ", cm)
+    """ clf = MLPClassifier(random_state=1, max_iter=500).fit(X_train, Y_train)
+    clf.predict_proba(X_test)
+    
+    clf.predict(X_test)
+    
+    clf.score(X_test, Y_test) """
+
+mlpClass()
