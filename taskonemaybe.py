@@ -3,6 +3,7 @@ from html.entities import name2codepoint
 import numpy
 import matplotlib.pyplot as plt
 import pandas as pd
+import sklearn
 from csv import reader
 from sklearn.tree import DecisionTreeClassifier # Import Decision Tree Classifier
 from sklearn.model_selection import train_test_split # Import train_test_split function
@@ -12,6 +13,24 @@ from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import confusion_matrix
+from sklearn.ensemble import VotingClassifier
+from vecstack import stacking
+from sklearn.ensemble import StackingClassifier
+
+from numpy import mean
+from numpy import std
+from sklearn.datasets import make_classification
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+
+# importing machine learning models for prediction
+import xgboost as xgb
+ 
+# importing bagging module
+from sklearn.ensemble import BaggingRegressor
 
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -194,9 +213,11 @@ def showPose(posenum):
 # NOW LET'S APPLY SOME ALGORITHMS
 X_train = data[featurecolumns] # Features
 Y_train = data.posename # Target variable
+Y2_train = data.poseid
 
 X_test = data2[featurecolumns] # Features
 Y_test = data2.posename # Target variable
+Y2_test = data2.poseid
 
 
 def treeClass():
@@ -244,8 +265,9 @@ def forestClass():
     y_pred=clf.predict(X_test)
     print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
 
+
 def mlpClass():
-    classifier = MLPClassifier(hidden_layer_sizes=(150,100,50), max_iter=300,activation = 'relu',solver='adam',random_state=1)
+    classifier = MLPClassifier(hidden_layer_sizes=(200,150,100,50), max_iter=600,activation = 'relu',solver='adam',random_state=1)
     classifier.fit(X_train, Y_train)
     y_pred = classifier.predict(X_test)
     #Importing Confusion Matrix
@@ -263,4 +285,78 @@ def mlpClass():
     
     clf.score(X_test, Y_test) """
 
-mlpClass()
+def ensembleClass1():
+    model_1 = MLPClassifier(hidden_layer_sizes=(200,150,100,50), max_iter=600,activation = 'relu',solver='adam',random_state=1)
+    model_2 = svm.SVC(kernel='linear')
+    model_3 = RandomForestClassifier(n_estimators=300)
+    final_model = VotingClassifier(
+    estimators=[('mlp', model_1), ('svm', model_2), ('rf', model_3)], voting='hard')
+ 
+    # training all the model on the train dataset
+    final_model.fit(X_train, Y_train)
+ 
+    # predicting the output on the test dataset
+    pred_final = final_model.predict(X_test)
+    print("Accuracy for voting:",metrics.accuracy_score(Y_test, pred_final))
+
+def ensembleClass2():
+    model_1 = KNeighborsClassifier(n_neighbors=2)
+    model_2 = svm.SVC(kernel='linear')
+    model_3 = DecisionTreeClassifier(criterion="entropy", max_depth=120)
+    final_model = VotingClassifier(
+    estimators=[('knn', model_1), ('svm', model_2), ('dt', model_3)], voting='hard')
+ 
+    # training all the model on the train dataset
+    final_model.fit(X_train, Y_train)
+ 
+    # predicting the output on the test dataset
+    pred_final = final_model.predict(X_test)
+    print("Accuracy:",metrics.accuracy_score(Y_test, pred_final))
+
+def ensembleStack():
+    level0 = list()
+    level0.append(('lr', LogisticRegression()))
+    level0.append(('knn', KNeighborsClassifier(n_neighbors=1)))
+    level0.append(('svm', svm.SVC(kernel='linear')))
+    level0.append(('rf', RandomForestClassifier(n_estimators=100)))
+
+    level1 = RandomForestClassifier(n_estimators=100)
+
+    model = StackingClassifier(estimators=level0, final_estimator=level1, cv=5)
+    model.fit(X_train, Y_train)
+    pred = model.predict(X_test)
+    print("Accuracy for stack:",metrics.accuracy_score(Y_test, pred))
+
+def ensembleBagging():
+    model = BaggingRegressor(base_estimator=xgb.XGBRegressor())
+ 
+    # training model
+    model.fit(X_train, Y2_train)
+    
+    # predicting the output on the test dataset
+    pred = model.predict(X_test)
+    print("Accuracy for bagging:",metrics.accuracy_score(Y2_test, pred))
+
+def evaluate_model(model, X, y):
+	cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+	scores = cross_val_score(model, X, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+	return scores
+
+def plotPerformance():
+    models = {}
+    models['lr'] = LogisticRegression()
+    models['knn'] = KNeighborsClassifier(n_neighbors=1)
+    models['svm'] = svm.SVC(kernel='linear')
+    models['rf']=RandomForestClassifier(n_estimators=100)
+
+    results, names = list(), list()
+    for name, model in models.items():
+        scores = evaluate_model(model, X_test, Y_test)
+        results.append(scores)
+        names.append(name)
+        print('>%s %.3f (%.3f)' % (name, mean(scores), std(scores)))
+    
+    plt.boxplot(results, labels=names, showmeans=True)
+    plt.show()
+
+ensembleStack()
