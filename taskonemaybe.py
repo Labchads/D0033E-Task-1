@@ -95,6 +95,7 @@ while i<21:
     i+=1
 
 featurecolumns = newcolumns[:]
+testfeatures = newcolumns[:60] + newcolumns[121:180]
 
 newcolumns.append("posename")
 newcolumns.append("poseid")
@@ -253,9 +254,9 @@ def treeClass():
     # Model Accuracy, how often is the classifier correct?
     print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
 
-def kNNClass():
+def kNNClass(k):
     #Create KNN Classifier
-    knn = KNeighborsClassifier(n_neighbors=2)
+    knn = KNeighborsClassifier(n_neighbors=k)
 
     #Train the model using the training sets
     knn.fit(X_train, Y_train)
@@ -297,25 +298,18 @@ def mlpClass():
 
     #Printing the accuracy
     print("Accuracy:",metrics.accuracy_score(Y_test, y_pred))
-    #print("Accuracy of MLPClassifier : ", cm)
-    """ clf = MLPClassifier(random_state=1, max_iter=500).fit(X_train, Y_train)
-    clf.predict_proba(X_test)
-    
-    clf.predict(X_test)
-    
-    clf.score(X_test, Y_test) """
 
 def ensembleClass1():
     model_1 = MLPClassifier(hidden_layer_sizes=(200,150,100,50), max_iter=600,activation = 'relu',solver='adam',random_state=1)
     model_2 = svm.SVC(kernel='linear')
     model_3 = RandomForestClassifier(n_estimators=1000)
-    model_4 = KNeighborsClassifier(n_neighbors = 2)
+    model_4 = KNeighborsClassifier(n_neighbors = 1)
     model_5 = RandomForestClassifier(n_estimators=1000)
     model_6 = DecisionTreeClassifier(criterion="entropy", max_depth=120)
     model_7 = LogisticRegression(max_iter = 600)
     model_8 = svm.SVC(kernel='linear')
     final_model = VotingClassifier(
-    estimators=[('mlp', model_1), ('svm', model_2), ('rf', model_3), ('knn', model_4), ('rf2', model_5), ('dt', model_6), ('lr', model_7)], voting='hard')
+    estimators=[('mlp', model_1), ('svm', model_2), ('rf', model_3), ('knn', model_4), ('dt', model_6), ('lr', model_7)], voting='hard', weights=[1,2,3,0.25,0.25,1], n_jobs=-1)
  
     # training all the model on the train dataset
     final_model.fit(X_train, Y_train)
@@ -327,9 +321,9 @@ def ensembleClass1():
 def ensembleClass2():
     model_1 = KNeighborsClassifier(n_neighbors=1)
     model_2 = svm.SVC(kernel='linear')
-    model_3 = DecisionTreeClassifier(criterion="entropy", max_depth=120)
+    model_3 = DecisionTreeClassifier(criterion="entropy", max_depth=240)
     final_model = VotingClassifier(
-    estimators=[('knn', model_1), ('svm', model_2), ('dt', model_3)], voting='hard')
+    estimators=[('knn', model_1), ('svm', model_2), ('dt', model_3)], voting='hard', weights=[1, 1, 1])
  
     # training all the model on the train dataset
     final_model.fit(X_train, Y_train)
@@ -393,12 +387,10 @@ def plotPerformance():
     plt.boxplot(results, labels=names, showmeans=True)
     plt.show()
 
-
+#mlpClass()
 #forestClass()
 #ensembleClass1()
 #ensembleClass2()
 #ensembleStack() 
-#boosterClass()
+boosterClass()
 #ensembleBagging()
-
-kNNClass()
