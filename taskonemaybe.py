@@ -18,6 +18,7 @@ from vecstack import stacking
 from sklearn.ensemble import StackingClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import AdaBoostClassifier
 
 from numpy import mean
 from numpy import std
@@ -110,7 +111,7 @@ data2.columns = newcolumns
 def fill_class_mean(frame, colname):
     frame[colname] = frame[colname].fillna(frame.groupby('posename')[colname].transform('mean')) 
     
-fill_class_mean(data, "joint3y")
+""" fill_class_mean(data, "joint3y")
 fill_class_mean(data, "joint3z")
 fill_class_mean(data, "joint4x")
 fill_class_mean(data, "joint5z")
@@ -123,9 +124,9 @@ fill_class_mean(data2, "joint3y")
 fill_class_mean(data2, "joint3z")
 fill_class_mean(data2, "joint4z")
 fill_class_mean(data2, "joint5x")
-fill_class_mean(data2, "joint5y")
+fill_class_mean(data2, "joint5y") """
 
-""" data["joint3y"]=data2["joint3y"].fillna(data2["joint3y"].mean())
+data["joint3y"]=data2["joint3y"].fillna(data2["joint3y"].mean())
 data["joint3z"]=data2["joint3z"].fillna(data2["joint3z"].mean())
 data["joint4x"]=data2["joint4x"].fillna(data2["joint4x"].mean())
 data["joint5z"]=data2["joint5z"].fillna(data2["joint5z"].mean())
@@ -138,7 +139,7 @@ data2["joint3y"]=data2["joint3y"].fillna(data2["joint3y"].mean())
 data2["joint3z"]=data2["joint3z"].fillna(data2["joint3z"].mean())
 data2["joint4z"]=data2["joint4z"].fillna(data2["joint4z"].mean())
 data2["joint5x"]=data2["joint5x"].fillna(data2["joint5x"].mean())
-data2["joint5y"]=data2["joint5y"].fillna(data2["joint5y"].mean()) """
+data2["joint5y"]=data2["joint5y"].fillna(data2["joint5y"].mean())
 
 newdata = data[data.columns[:240]]
 #newdata = pd.DataFrame()
@@ -288,7 +289,7 @@ def forestClass():
 
 
 def mlpClass():
-    classifier = MLPClassifier(hidden_layer_sizes=(200,150,100,50), max_iter=600,activation = 'relu',solver='adam',random_state=1)
+    classifier = MLPClassifier(hidden_layer_sizes=(200,150,100,50),activation = 'relu',solver='adam', max_iter=600,random_state=1)
     classifier.fit(X_train, Y_train)
     y_pred = classifier.predict(X_test)
     #Importing Confusion Matrix
@@ -335,13 +336,13 @@ def ensembleClass2():
 def ensembleStack():
     level0 = list()
 #    level0.append(('lr', LogisticRegression(max_iter = 1000)))
-    level0.append(('knn', KNeighborsClassifier(n_neighbors=2)))
-    level0.append(('svm', svm.SVC(kernel='linear')))
-    level0.append(('rf', RandomForestClassifier(n_estimators=1000)))
+    level0.append(('knn', KNeighborsClassifier(n_neighbors=1)))
+    level0.append(('svm', svm.SVC(kernel='linear', C=0.8)))
+    level0.append(('rf', RandomForestClassifier(n_estimators=1000, max_depth=1100)))
     level0.append(('mlp', MLPClassifier(hidden_layer_sizes=(200,150,100,50), max_iter=600,activation = 'relu',solver='adam',random_state=1)))
-    level0.append(('dt', DecisionTreeClassifier(max_depth = 120)))
+    level0.append(('dt', DecisionTreeClassifier(max_depth = 130, criterion='gini')))
 
-    level1 = RandomForestClassifier(n_estimators = 1000)
+    level1 = RandomForestClassifier(n_estimators = 1000, max_depth=1100)
 
     model = StackingClassifier(estimators=level0, final_estimator=level1, cv=5)
     model.fit(X_train, Y_train)
@@ -354,9 +355,24 @@ def boosterClass():
     pred = model.predict(X_test)
     print("Accuracy for booster:",metrics.accuracy_score(Y_test, pred))
     
+def adaBoost():
+    
+    svc=SVC(kernel='linear')
+    # Create adaboost classifer object
+    abc = AdaBoostClassifier(n_estimators=500, base_estimator=LogisticRegression(max_iter=1000),learning_rate=1, algorithm='SAMME.R', random_state=0)
+
+    # Train Adaboost Classifer
+    model = abc.fit(X_train, Y_train)
+
+    #Predict the response for test dataset
+    y_pred = model.predict(X_test)
+    # Model Accuracy, how often is the classifier correct?
+    print("Accuracy for Adaboost:",metrics.accuracy_score(Y_test, y_pred))
+
+
 
 def ensembleBagging():
-    model = BaggingClassifier(base_estimator=RandomForestClassifier(n_estimators=100), n_estimators=10, random_state=0)
+    model = BaggingClassifier(base_estimator=RandomForestClassifier(n_estimators=1000, max_depth=1100), n_estimators=10, random_state=0, n_jobs=-1)
  
     # training model
     model.fit(X_train, Y_train)
@@ -392,5 +408,6 @@ def plotPerformance():
 #ensembleClass1()
 #ensembleClass2()
 #ensembleStack() 
-boosterClass()
-#ensembleBagging()
+#boosterClass()
+ensembleBagging()
+adaBoost()
